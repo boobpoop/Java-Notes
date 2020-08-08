@@ -9,11 +9,13 @@
 
 **2、Redis的数据结构都有哪些。**
 
+key是String类型
+
 Redis支持五种Value Type，其底层实现的编码数据结构有8种：
 
-- SDS - simple synamic string - 支持自动动态扩容的字节数组
-- list - 平平无奇的链表
-- dict - 使用双哈希表实现的, 支持平滑扩容的字典
+- SDS - simple synamic string - 支持自动动态扩容的字符数组。String底层就是SDS。
+- list - 包含了链表头，链表尾，元素个数的链表。
+- dict - 使用双哈希表实现的， 支持平滑扩容的字典。[渐进式扩容](http://redisbook.com/preview/dict/incremental_rehashing.html)
 - zskiplist - 附加了后向指针的跳跃表
 - intset - 用于存储整数数值集合的自有结构
 - ziplist - 一种实现上类似于TLV, 但比TLV复杂的, 用于存储任意数据的有序序列的数据结构
