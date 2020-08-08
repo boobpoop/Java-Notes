@@ -26,6 +26,8 @@ Redis支持五种Value Type，其底层实现的编码数据结构有8种：
 
 Redis中的Key与Value在表层都是一个redisObject实例, 故该结构有所谓的"类型", 即是ValueType. 对于每一种Value Type类型的redisObject, 其底层至少支持**两种**不同的底层数据结构来实现. 以应对在不同的应用场景中, Redis的运行效率, 或内存占用.
 
+
+[Redis数据类型及底层原理](https://www.cnblogs.com/MouseDong/p/11134039.html)
 对于具体数据结构介绍，建议看《Redis设计与实现》第一部分，或者看这篇文章，[面试官：你看过Redis数据结构底层实现吗？](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247488733&idx=1&sn=c74645ca78024fdc8ddfa3265d527386&chksm=ebd62bf1dca1a2e7f76b8cc37a6518c744adc6f226727838ef2f8068bbecef0ae4577f7d4217&scene=21)
 
 **3、Redis的使用要注意什么。**
@@ -261,6 +263,8 @@ watch指令在redis事物中提供了CAS的行为。为了检测被watch的keys�
 
 具体工作机制：watch 命令会监视给定的每一个key，当exec时如果监视的任一个key自从调用watch后发生过变化，则整个事务会回滚，不执行任何动作。注意watch的key是对整个连接有效的，事务也一样。如果连接断开，监视和事务都会被自动清除。
 
+[watch代码详解](https://www.cnblogs.com/justuntil/p/10539866.html)
+
 **第二种，使用redis的setnx命令进行实现。**
 
 先看一下这个相关的命令。
@@ -310,7 +314,7 @@ Redis支持物种数据类型：string（字符串）、hash（哈希）、list�
 Redis提供了五种数据淘汰策略：
 
 - volatile-lru：使用LRU算法进行数据淘汰（淘汰上次使用时间最早的，且使用次数最少的key），只淘汰设定了有效期的
-- keyallkeys-lru：使用LRU算法进行数据淘汰，所有的key都可以被淘汰
+- allkeys-lru：使用LRU算法进行数据淘汰，所有的key都可以被淘汰
 - volatile-random：随机淘汰数据，只淘汰设定了有效期的key
 - allkeys-random：随机淘汰数据，所有的key都可以被淘汰
 - volatile-ttl：淘汰剩余有效期最短的key
@@ -331,7 +335,7 @@ Redis集群没有使用一致性hash,而是引入了哈希槽的概念，Redis�
 
 具体方法如下：
 
-- 事发前：实现Redis的高可用(主从架构+Sentinel 或者Redis Cluster)，尽量避免Redis挂掉这种情况发生。
+- 事发前：实现Redis的高可用(主从架构+Sentinel 或者Redis Cluster)，尽量避免Redis挂掉这种情况发生。[cluster](https://my.oschina.net/u/3764456/blog/3118396)
 - 事发中：万一Redis真的挂了，我们可以设置本地缓存(ehcache)+限流(hystrix)，尽量避免我们的数据库被干掉(起码能保证我们的服务还是能正常工作的)
 - 事发后：redis持久化，重启后自动从磁盘上加载数据，快速恢复缓存数据。
 
