@@ -95,6 +95,9 @@ SQL优化步骤一般是：
 
 参考链接： [SQL优化的一般步骤是什么，怎么看执行计划，如何理解其中各个字段的含义。](https://blog.csdn.net/riemann_/article/details/91349161)
 
+[Explain字段详细解析](https://www.cnblogs.com/gdwkong/articles/8505125.html)
+
+
 **6、数据库会死锁吗，举一个死锁的例子，mysql是怎么解决死锁的。**
 
 数据库会出现死锁。死锁是指两个或两个以上的事务在执行过程中，因争夺锁资源而造成的一种相互等待的现象。
