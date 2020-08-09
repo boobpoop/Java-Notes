@@ -4,8 +4,10 @@
 
 1.@ComponentScan(“包名”)设置扫描的包，并初始化BeanFactory对象，beanFactory都多个重要成员：
 
+&ensp;&ensp;
 beanDefinitionMap(ConcurrentHashMap)：生成的beanDefinition对象放在bean工厂的beanDefinitionMap中。
    
+&ensp;&ensp;
 singletionObjects(ConcurrentHashMap)单例池：所有单例bean都放到工厂对象的单例池中，包含懒加载的单例对象。
    
 
@@ -15,21 +17,29 @@ singletionObjects(ConcurrentHashMap)单例池：所有单例bean都放到工厂�
 
 4.执行所有BeanFactoryPostProcessor的实现类的方法，对beanDefinitionMap进行增删改查
 
+&ensp;&ensp;
 beanFactory创建好了beanDefinitionMap后，查看该BeanDefinition中的class类是否实现了BeanFactoryPostProcessor接口，如果实现了，就可以在重写的方法中获取beanFactory对象，通过该对象可以增删改查beanDefiniton的内容。在方法中，此时singletonObjects还未初始化，只有beanDefinitionMap成员。
 
+&ensp;&ensp;
 例如：此时调用beanFactory.getBean()时，此时singletonObjects还没有创建bean对象，会在singletonObjects中创建该bean并放到singletionObjects中。
 
+&ensp;&ensp;
 例如：beanFactory.registerSingletion(“beanName”, class对象)：将class对象放到单例池中。该方法不会执行后面的属性注入，初始化等过程。
 
 
+&ensp;&ensp;
 使用除@Component外的方法创建bean对象。
 
+&ensp;&ensp;&ensp;&ensp;
 1.@Configuration+@Bean：通过@Bean注解修饰方法，将该方法的返回值放到单例池中。
    
+&ensp;&ensp;&ensp;&ensp;
 2.实现FactoryBean接口：重写它的getObject()方法，方法的返回值默认会放到单例池中。可以将动态代理创建的对象作为该方法的返回值，加入到单例池中。
-   
+
+&ensp;&ensp;&ensp;&ensp;
 例如：在spring整合mybatis时，当service类需要注入一个接口成员时，而该接口却没有实现类，只有mybatis注解和spring注解，这时mybatis就会通过JDK动态代理生成对象，并生成spring的bean。重写BeanFactory方法getObject()就可以将代理对象插入到单例池中。
-   
+
+&ensp;&ensp;
 上述两种创建bean的方法可以进行后续的初始化。
 
 4.执行BeanAware方法进行属性的初始化。
