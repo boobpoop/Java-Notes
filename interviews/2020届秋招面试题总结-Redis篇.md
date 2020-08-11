@@ -16,26 +16,26 @@
 
 **2、Redis的数据结构都有哪些。**
 
-key是String类型
+key是String类型，Redis的数据结构是指value的数据类型。
 
-Redis支持五种Value Type，其底层实现的编码数据结构有8种：
+Redis支持五种Value Type:
+- String:底层由SDS实现。
+- list：底层由ziplist或linkedlist实现。
+- hash：底层由ziplist或hashtable实现。
+- set：底层由intset或hashtable实现。
+- zet：底层由ziplist或skiplist实现。
 
-- SDS - simple synamic string - 支持自动动态扩容的字符数组。String底层就是SDS。
-- list - 包含了链表头，链表尾，元素个数的链表。
-- dict - 使用双哈希表实现的， 支持平滑扩容的字典。[渐进式扩容](http://redisbook.com/preview/dict/incremental_rehashing.html)
-- zskiplist - 附加了后向指针的跳跃表
-- intset - 用于存储整数数值集合的自有结构
-- ziplist - 一种实现上类似于TLV, 但比TLV复杂的, 用于存储任意数据的有序序列的数据结构
-- quicklist - 一种以ziplist作为结点的双链表结构
-- zipmap - 一种用于在小规模场合使用的轻量级字典结构
+其底层实现的编码数据结构有8种：
 
-衔接"底层数据结构"与"Value Type"的桥梁的, 则是Redis实现的另外一种数据结构: redisObject.。
-
-Redis中的Key与Value在表层都是一个redisObject实例, 故该结构有所谓的"类型", 即是ValueType. 对于每一种Value Type类型的redisObject, 其底层至少支持**两种**不同的底层数据结构来实现. 以应对在不同的应用场景中, Redis的运行效率, 或内存占用.
-
+- SDS - simple synamic string ： 是自动动态扩容的字符数组。当字符串长度小于44时，实现类型是embstr；否则是raw类型。
+- intset ： 用于存储整数数值集合的自有结构。
+- ziplist ： 底层使用连续内存存储数据，根据偏移量获取插入的元素。
+- linkedlist ： 底层使用链表存储数据。
+- quicklist ：ziplist+逐层抽象。
+- hashtable ：两个table表，用于扩容时分批次进行，避免一次性扩容时过高地占用内存资源。
 
 [Redis数据类型及底层原理](https://www.cnblogs.com/MouseDong/p/11134039.html)
-对于具体数据结构介绍，建议看《Redis设计与实现》第一部分，或者看这篇文章，[面试官：你看过Redis数据结构底层实现吗？](https://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&mid=2247488733&idx=1&sn=c74645ca78024fdc8ddfa3265d527386&chksm=ebd62bf1dca1a2e7f76b8cc37a6518c744adc6f226727838ef2f8068bbecef0ae4577f7d4217&scene=21)
+
 
 **3、Redis的使用要注意什么。**
 
@@ -69,7 +69,7 @@ Redis事务具有的性质：
 Redis的事务与传统的关系式数据库事务的最大区别在于，Redis不支持事务回滚机制（rollback），即使事务队列中的某个命令在执行期间出现了错误，整个事务也会继续执行下去，直到将事务队列中的所有命令都执行完毕为止。
 一定注意，Redis的事务性与常见的关系式数据库有些不同（尤其原子性），建议直接去看《Redis设计与实现》的19.3小节-事务的ACID性质，网上各种博客说的参差不齐。
 
-**5、当前Redis** **cluster** **集群有哪些方式，各自优缺点，场景。**
+**5、当前Redi 集群有哪些方式，各自优缺点，场景。**
 
 Redis集群是Redis提供的分布式数据库方案，集群通过分片来进行数据共享，并提供复制和故障转移功能。
 
