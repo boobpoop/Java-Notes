@@ -1,5 +1,30 @@
 # 2020届秋招面试题总结——Spring篇
 
+**10、spring的controller是单例还是多例，怎么保证并发的安全。**
+
+spring bean作用域有五种：
+
+- singleton：单例模式，当spring创建applicationContext容器的时候，spring会欲初始化所有的该作用域实例，加上lazy-init就可以避免预处理；
+- prototype：原型模式，每次通过getBean获取该bean就会新产生一个实例，创建后spring将不再对其管理；
+
+====下面是在web项目下才用到的===
+
+- request：搞web的大家都应该明白request的域了吧，就是每次请求都新产生一个实例，和prototype不同就是创建后，接下来的管理，spring依然在监听。
+- session：每次会话，同上。
+- global session：全局的web域，类似于servlet中的application。
+
+spring中的controller默认是单例，也就是singleton模式了。
+
+所以如果controller中有一个私有变量a，所有请求到同一个controller时，使用的a变量都是共用的，即若是某个请求修改了这个变量a，则，在别的请求中能够读到这个修改的内容。
+
+为了保证并发的安全，常见有两种解决方法。
+
+- 在controller中使用ThreadLocal变量。
+- 在spring配置文件Controller中声明为scope="prototype"，每次都创建新的controller，不再使用单例模式。
+
+另外，Servlet也不是线程安全的，Servlet是单实例多线程的，当多个线程同时访问同一个方法，是不能保证共享变量的线程安全性的。
+
+
 **1、讲讲Spring的加载流程。**
 
 1.@ComponentScan(“包名”)设置扫描的包，并初始化BeanFactory对象，beanFactory都多个重要成员：
