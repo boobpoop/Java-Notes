@@ -1,5 +1,12 @@
 # 2020届秋招面试题总结——Redis篇
 
+**重点**：
+- redis数据结构
+- redis集群
+- redis与数据库
+- redis分布式锁
+- redis优化
+
 **1、Redis的优势。**
 
 - 速度快，因为数据存在内存中，类似于HashMap，HashMap的优势就是查找和操作的时间复杂度都是O(1)。
