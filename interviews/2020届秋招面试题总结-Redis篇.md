@@ -20,19 +20,37 @@ key是String类型，Redis的数据结构是指value的数据类型。
 
 Redis支持五种Value Type:
 - String:底层由SDS实现。
+  -- SDS由len和free以及char[]数组构成，len表示元素占用的字节数，free表示可用空间数，char[]用来存放实际数据。
+  
+  -- SDS根据len作为偏移量查询每个元素，而不是根据下标，当数组中的数据有'\0'时，依然能存储，它是二进制安全的数组。
+  
+  -- SDS根据free来动态扩容，当数组空间不够时，扩容，而普通的string每次赋值都会重新申请内存，非常浪费。
+  
+  由于len和free都是int类型，共占8个字节，而char[]数组的容量可能远远小于8个字节，使用int会浪费内存。因此redis进行优化，采用更小的结构存储len，free。根据char[]数组实际的容量len和free的type从int_8、int_16、int_32、int_64不等。
+  
+  redis每个value数据都是RedisObject类型。RedisObject存储的类型是上述的五种类型。
+  
+  -- 当数组大小小于44时，采用embstr的类型，将redisObject头和数组元素连续内存分配，这样44 + len(redisObject头) < 64byte，可以充分利用L1缓存，不需要额外IO。
+    
+  -- 当数组大小大于44时，采用raw类型，redisObject的ptr指向数组内存， 这样redisobjct加载到L1缓存后，再执行一次IO加载数组。
+  
+  -- 当数组内容是数字是，采用int存储，可以执行incr等算术操作。
+  
 - list：底层由ziplist或linkedlist实现。
+
+  -- linkedlist额外加入了pre和next指针，在64位系统中每个结点额外占用来16byte，非常浪费内存，采用ziplist进行优化。并且会产生外部碎片，系统无法使用。
+  
+  -- ziplist内存是连续分配的，每个节点通过len表示结点的大小。这样节省linkedlist所创建的指针，还压缩内存。
+ 
+
 - hash：底层由ziplist或hashtable实现。
-- set：底层由intset或hashtable实现。
-- zet：底层由ziplist或skiplist实现。
 
-其底层实现的编码数据结构有8种：
+  -- 当元素低于512个，采用ziplist，节省内存。超过512个，采用hashtable。
+  -- hashtable在扩容，链表等类似java的hashmap，但是hashtable采用两个hashtable，用于渐进式扩容。即当新元素加入hashtable时，在新的table中分配，而不是一次性地扩容，一次性扩容会导致瞬间过高地占用内存。
+  
+- set：底层由intset或hashtable实现。如果set中是数字，使用intset，否则hashtable。
 
-- SDS - simple synamic string ： 是自动动态扩容的字符数组。当字符串长度小于44时，实现类型是embstr；否则是raw类型。
-- intset ： 用于存储整数数值集合的自有结构。
-- ziplist ： 底层使用连续内存存储数据，根据偏移量获取插入的元素。
-- linkedlist ： 底层使用链表存储数据。
-- quicklist ：ziplist+逐层抽象。
-- hashtable ：两个table表，用于扩容时分批次进行，避免一次性扩容时过高地占用内存资源。
+- zet：底层由ziplist或skiplist实现。通过分数排序，skiplist底层采用链表，通过分层的思想实现二分法。
 
 [Redis数据类型及底层原理](https://www.cnblogs.com/MouseDong/p/11134039.html)
 
