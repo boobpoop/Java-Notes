@@ -1,31 +1,36 @@
 # 2020届秋招面试题总结——Spring篇
 
-**10、spring的controller是单例还是多例，怎么保证并发的安全。**
+**1、说说你对Spring的理解，非单例注入的原理？它的生命周期？循环注入的原理，aop的实现原理，说说aop中的几个术语，它们是怎么相互工作的。**
 
-spring bean作用域有五种：
-
-- singleton：单例模式，当spring创建applicationContext容器的时候，spring会欲初始化所有的该作用域实例，加上lazy-init就可以避免预处理；
-- prototype：原型模式，每次通过getBean获取该bean就会新产生一个实例，创建后spring将不再对其管理；
-
-====下面是在web项目下才用到的===
-
-- request：搞web的大家都应该明白request的域了吧，就是每次请求都新产生一个实例，和prototype不同就是创建后，接下来的管理，spring依然在监听。
-- session：每次会话，同上。
-- global session：全局的web域，类似于servlet中的application。
-
-spring中的controller默认是单例，也就是singleton模式了。
-
-所以如果controller中有一个私有变量a，所有请求到同一个controller时，使用的a变量都是共用的，即若是某个请求修改了这个变量a，则，在别的请求中能够读到这个修改的内容。
-
-为了保证并发的安全，常见有两种解决方法。
-
-- 在controller中使用ThreadLocal变量。
-- 在spring配置文件Controller中声明为scope="prototype"，每次都创建新的controller，不再使用单例模式。
-
-另外，Servlet也不是线程安全的，Servlet是单实例多线程的，当多个线程同时访问同一个方法，是不能保证共享变量的线程安全性的。
+spring最核心的就是ioc和aop。
+- 手动维护对象的创建与依赖关系很繁琐。spring使用ioc进行控制反转，通过单例模式和工厂模式以反射的方式创建bean对象，管理对象声明周期，管理bean的依赖。
+- aop巧妙的例用动态代理优雅的解决了oop力所不及的问题，通过面向切面编程增强被代理对象的功能。
 
 
-**1、讲讲Spring的加载流程。**
+**依赖查找方式**
+- byName
+- byType
+
+**依赖注入的方式**
+- 通过set方式
+- 通过构造器方式
+- 通过反射方式：field.set(x)。
+
+**bean装配方式**
+- @Component，@Service等注解继承自@Component。
+- @Bean。
+- 实现FactoryBean接口，以@Component修改时实现类。
+- @ComponentScan
+- @Import
+
+**FactoryBean与BeanFactory**
+
+- FactoryBean是进行Bean装配的类。如果获取FactoryBean对象，以&开头，则返回FactoryBean类型的bean对象。如果不以&开头，则返回FactoryBean实现类的bean的getObject()返回的bean对象。
+- BeanFactory是管理Bean定义，存储单例Bean的对象。
+
+
+
+**Spring中Bean的生命周期。**
 
 1.@ComponentScan(“包名”)设置扫描的包，并初始化BeanFactory对象，beanFactory都多个重要成员：
 
@@ -71,10 +76,12 @@ beanFactory创建好了beanDefinitionMap后，查看该BeanDefinition中的class
 
 5.实现beanInitializer接口进行初始化，重写afterProperties()方法，可以对属性进行初始化。
 
+![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
+
 [Spring初始化加载流程分析](https://blog.csdn.net/u011043551/article/details/79675363)
 
-**2、Spring AOP的实现原理。**
 
+***AOP***
 Spring AOP的面向切面编程，是面向对象编程的一种补充，用于处理系统中分布的各个模块的横切关注点，比如说事务管理、日志、缓存等。它是使用动态代理实现的，在内存中临时为方法生成一个AOP对象，这个对象包含目标对象的所有方法，在特定的切点做了增强处理，并回调原来的方法。
 
 Spring AOP的动态代理主要有两种方式实现，JDK动态代理和cglib动态代理。JDK动态代理通过反射来接收被代理的类，但是被代理的类必须实现接口，核心是InvocationHandler和Proxy类。cglib动态代理的类一般是没有实现接口的类，cglib是一个代码生成的类库，可以在运行时动态生成某个类的子类，所以，CGLIB是通过继承的方式做的动态代理，因此如果某个类被标记为final，那么它是无法使用CGLIB做动态代理的。
@@ -83,9 +90,42 @@ Spring AOP的动态代理主要有两种方式实现，JDK动态代理和cglib�
 
 静态：由程序员创建代理类或特定工具自动生成源代码再对其编译。在程序运行前代理类的.class文件就已经存在了。
 
-动态：在程序运行时运用反射机制动态创建而成。
+动态：在程序运行时运用反射机制动态创建而成。当被代理类实现接口时，自动使用JDK动态代理，实现类是class时，自动使用CGLib。
+
+***JDK动态代理***
+运行是创建Proxy类，InvocationHandler的invoke()方法对被代理对象进行包装，Proxy执行InvocationHandler的invoke（）方法。
+
+***CGLib***
+修改被代理对象的二进制文件，生成动态代理对象。
 
 至此，我们知道动态代理相对于静态代理的优势：就静态代理而言，在委托类特别多的应用场景，就要相应的添加许多的代理类，这显然增加了应用程序的复杂度，而使用动态代理就可以减少代理类的数量，相对降低了应用程序的复杂度。
+
+
+**10、spring的controller是单例还是多例，怎么保证并发的安全。**
+
+spring bean作用域有五种：
+
+- singleton：单例模式，当spring创建applicationContext容器的时候，spring会欲初始化所有的该作用域实例，加上lazy-init就可以避免预处理；
+- prototype：原型模式，每次通过getBean获取该bean就会新产生一个实例，创建后spring将不再对其管理；
+
+====下面是在web项目下才用到的===
+
+- request：搞web的大家都应该明白request的域了吧，就是每次请求都新产生一个实例，和prototype不同就是创建后，接下来的管理，spring依然在监听。
+- session：每次会话，同上。
+- global session：全局的web域，类似于servlet中的application。
+
+spring中的controller默认是单例，也就是singleton模式了。
+
+所以如果controller中有一个私有变量a，所有请求到同一个controller时，使用的a变量都是共用的，即若是某个请求修改了这个变量a，则，在别的请求中能够读到这个修改的内容。
+
+为了保证并发的安全，常见有两种解决方法。
+
+- 在controller中使用ThreadLocal变量。
+- 在spring配置文件Controller中声明为scope="prototype"，每次都创建新的controller，不再使用单例模式。
+
+另外，Servlet也不是线程安全的，Servlet是单实例多线程的，当多个线程同时访问同一个方法，是不能保证共享变量的线程安全性的。
+
+
 
 **3、讲讲Spring事务的传播属性。**
 
@@ -147,6 +187,19 @@ int PROPAGATION_NESTED = 6;
 
 参考链接：[可能是最漂亮的 Spring 事务管理详解](https://mp.weixin.qq.com/s?__biz=MzUzMTA2NTU2Ng==&mid=2247484702&idx=1&sn=c04261d63929db09ff6df7cadc7cca21&chksm=fa497aafcd3ef3b94082da7bca841b5b7b528eb2a52dbc4eb647b97be63a9a1cf38a9e71bf90&token=165108535&lang=zh_CN#rd)
 
+
+**14、Spring中事务失效的几种原因。**
+
+Spring中通过注解@Transactional来实现事务，但在以下几种情况时，事务会失效。
+
+- Spring中事务自调用会失效，如果A方法调用B方法，B方法上有事务注解，AB方法在同一个类中，那么B方法的事务就会失效，这是动态代理的原因。
+- Spring的事务注解@Transactional只能作用在public修饰的方法上才起作用，如果放在非public（如private、protected）方法上，虽然不报错，但是事务不起作用。
+- 如果MySQL用的引擎是MyISAM，则事务会不起作用，原因是MyISAM不支持事务，可以改成InnoDB引擎。
+- Spring建议在具体的类（或类的方法）上使用@Transactional注解，而不要使用在类所实现的任何接口上。在接口上使用@Transactional注解，只能当你设置了基于接口的代理时他才会生效，因为注解是不能继承的，这就意味着如果正在使用基于类的代理时，那么事务的设置将不能被基于类的代理所识别，而且对象也将不会被事务代理所包装。
+- 如果在业务代码中抛出RuntimeException异常，事务回滚；但是抛出Exception，事务不回滚。
+
+需要注意的是，@Transactional也可以作用于类上，放在类级别上等同于该类的每个公有方法都放上了@Transactional。
+
 **4、Spring如何管理事务的，怎么配置事务。**
 
 所谓事务管理，其实就是“**按照给定的事务规则来执行提交或者回滚操作**”。
@@ -160,13 +213,7 @@ Spring提供两种类型的事务管理：
 
 具体可以去看[Spring事务管理－编程式事务、声明式事务](https://blog.csdn.net/xktxoo/article/details/77919508)。
 
-**5、说说你对Spring的理解，非单例注入的原理？它的生命周期？循环注入的原理，aop的实现原理，说说aop中的几个术语，它们是怎么相互工作的。**
 
-在bean的scope属性中，当值是singleton表示单例,当值是prototype表示多例。
-
-单例：多次用factory.getBean("user",user.class)获取实体类，获得是同一类。
-
-多例：多次用factory.getBean("user",user.class)获取实体类，获得是多个类。
 
 **6、Spring MVC中DispatcherServlet工作流程。**
 
@@ -402,46 +449,6 @@ Spring 框架中用到了哪些设计模式？
 - SQL语句的编写工作量大，尤其是字段多、关联表多时，更是如此，对开发人员编写SQL语句的功底有一定要求。
 - SQL语句依赖数据库，导致数据库移植性差，不能随意更换数据库。
 
-**13、Spring中Bean的生命周期。**
-
-首先来看bean初始化之前的准备工作，如下图。
-
-![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
-
-主要看前三步：
-
-spring通过我们的配置，比如@ComponentScan定义的扫描路径去找到带有@Component的类，这个过程就是一个资源定位的过程。
-
-一旦找到资源，那么它就开始解析，并将定义的信息保存到beanDefinition中。注意，此时还没有初始化bean，也没有bean实例，它有的仅仅是bean的定义。
-
-然后把bean定义发布到Spring IOC容器中给，此时，IOC容器也只有bean的定义，还是没有bean的实例生成。
-
-对于IOC容器BeanFactory来说，它遵循延迟注入原则，只有当用到某个bean的时候才会初始化（就是只有当getBean()调用的时候才会触发bean实例化）。而对于ApplicationContext容器来说，它是在系统启动的时候就完成了所有bean的初始化。
-
-下面来看IOC容器初始化bean的过程，如下图。
-
-![Y5i0UJ.png](https://s1.ax1x.com/2020/05/19/Y5i0UJ.png)
-
-简单来说就以下几步：
-
-- 如果Bean实现了BeanNameAware接口，工厂调用Bean的setBeanName()方法传递Bean的ID。
-- 如果Bean实现了BeanFactoryAware接口，工厂调用setBeanFactory()方法传入工厂自身。
-- 如果Bean实现了ApplicationContextAware接口，则可以调用setApplicationContext获取ApplicationContext。
-- 将Bean实例传递给Bean的前置处理器的postProcessBeforeInitialization(Object bean, String beanname)方法。调用Bean的初始化方法。
-- 将Bean实例传递给Bean的后置处理器的postProcessAfterInitialization(Object bean, String beanname)方法。Bean使用过程。
-- 如果Bean实现了DisposableBean接口，则可以调用其destory()方法，也或者可以通过重写@PreDestroy方法在关闭时释放一些资源。
-
-**14、Spring中事务失效的几种原因。**
-
-Spring中通过注解@Transactional来实现事务，但在以下几种情况时，事务会失效。
-
-- Spring中事务自调用会失效，如果A方法调用B方法，B方法上有事务注解，AB方法在同一个类中，那么B方法的事务就会失效，这是动态代理的原因。
-- Spring的事务注解@Transactional只能作用在public修饰的方法上才起作用，如果放在非public（如private、protected）方法上，虽然不报错，但是事务不起作用。
-- 如果MySQL用的引擎是MyISAM，则事务会不起作用，原因是MyISAM不支持事务，可以改成InnoDB引擎。
-- Spring建议在具体的类（或类的方法）上使用@Transactional注解，而不要使用在类所实现的任何接口上。在接口上使用@Transactional注解，只能当你设置了基于接口的代理时他才会生效，因为注解是不能继承的，这就意味着如果正在使用基于类的代理时，那么事务的设置将不能被基于类的代理所识别，而且对象也将不会被事务代理所包装。
-- 如果在业务代码中抛出RuntimeException异常，事务回滚；但是抛出Exception，事务不回滚。
-
-需要注意的是，@Transactional也可以作用于类上，放在类级别上等同于该类的每个公有方法都放上了@Transactional。
 
 **15、注解继承问题。**
 
@@ -463,6 +470,3 @@ MyBatis实现分页操作时，有逻辑分页和物理分页这两个区别。
 逻辑分页内存开销比较大，物理分页内存开销比较小。在数据量比较小的情况下，逻辑分页效率比物理分页高；在数据量很大的情况下，建议使用物理分页，因为物理内存开销太大，容易造成内存溢出。
 
 我习惯在项目中使用PageHelper来实现分页。
-
-弥有，2019年9月
-[EOF]
