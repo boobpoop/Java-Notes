@@ -208,7 +208,7 @@ Redis提供了五种数据淘汰策略：
 **5、当前Redis 集群有哪些方式，各自优缺点，场景。**
 
 -以前的redis高可用：
---以前只用一个master，多个slave，master写，slave读。通过哨兵，心跳检测，当master挂掉后，选举一个slave作为master。有10秒时间，redis不能服务。
+--以前只用一个master，多个slave，master写，slave读。通过哨兵（占一个单独结点），每2s心跳检测，当master挂掉后，通过slave的优先级选举一个slave作为master。有10秒时间，redis不能服务。
 
 -现在的reids高可用：
 
