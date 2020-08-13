@@ -7,74 +7,52 @@ spring最核心的就是ioc和aop。
 - aop巧妙的例用动态代理优雅的解决了oop力所不及的问题，通过面向切面编程增强被代理对象的功能。
 
 
-**依赖查找方式**
-- byName
-- byType
+**Spring中自动装配方式有哪些？**
+- byType：@Autowired通过类型进行装配。
+- byName：@Resource通过bean名称进行装配，若找不到指定的bean名称，则通过bean类型进行装配，如果都没有，就报异常。
 
-**依赖注入的方式**
+**DI依赖注入的方式**
 - 通过set方式
 - 通过构造器方式
 - 通过反射方式：field.set(x)。
 
 **bean装配方式**
 - @Component，@Service等注解继承自@Component。
-- @Bean。
+- @Bean。@Configuration+@Bean：通过@Bean注解修饰方法，将该方法的返回值放到单例池中。通过"&beanName"和"beanName"返回的对象不同，前者返回类所对应的对象；后者返回@bean修饰的方法返回的对象。
 - 实现FactoryBean接口，以@Component修改时实现类。
-- @ComponentScan
-- @Import
 
 **FactoryBean与BeanFactory**
 
 - FactoryBean是进行Bean装配的类。如果获取FactoryBean对象，以&开头，则返回FactoryBean类型的bean对象。如果不以&开头，则返回FactoryBean实现类的bean的getObject()返回的bean对象。
 - BeanFactory是管理Bean定义，存储单例Bean的对象。
 
+**bean的作用域***
+- singleton:单例bean，存放在beanFactory的单例池singletonObjects成员中，在spring容器销毁时，单例bean才销毁。会产生线程安全问题。
+- prototype:原型模式，每调用一次getBean()，就创建一个bean对象，不会存在线程安全问题。
+- Request：作用在web领域，每有一个请求，调用getBean()时就会创建一个bean对象。
+- session：作用在web领域，一个用户的多次访问getBean()时只创建一个bean对象，不同用户访问才会创建新bean对象。
+- global session：作用在全部的session中。
 
+**BeanFactory与ApplicationContext**
+
+- BeanFactory：BeanFactory是Spring容器最基本的接口。BeanFactory负责配置、创建、管理Bean。它是Spring灵魂。beanFactory都多个重要成员：
+
+-- beanDefinitionMap(ConcurrentHashMap)：通过@scope、@lazyInit、@beanClass等注解生成beanDefinition对象，放在bean工厂的beanDefinitionMap中。
+
+-- singletionObjects(ConcurrentHashMap)单例池：所有单例bean都放到工厂对象的单例池中，包含懒加载的单例对象。
+
+- ApplicationContext：ApplicationContext是BeanFactory的子接口。对BeanFactory进行了扩展，提供了各种加载bean的方式，例如xml，注解。它是Spring的落地。
 
 **Spring中Bean的生命周期。**
 
-1.@ComponentScan(“包名”)设置扫描的包，并初始化BeanFactory对象，beanFactory都多个重要成员：
-
-&ensp;&ensp;
-beanDefinitionMap(ConcurrentHashMap)：生成的beanDefinition对象放在bean工厂的beanDefinitionMap中。
-   
-&ensp;&ensp;
-singletionObjects(ConcurrentHashMap)单例池：所有单例bean都放到工厂对象的单例池中，包含懒加载的单例对象。
-   
-
-2.扫描包下的所有class，解析class上的注解，例如@scope、@lazyInit、@beanClass等等，这些注解描述了bean详细信息。
-
-3.将第2步获取到的bean的详细信息封装成到BeanDefintion对象，将该beanDefinition对象插入到BeanFactory对象的beanDefinitionMap成员中。
-
-4.执行所有BeanFactoryPostProcessor的实现类的方法，对beanDefinitionMap进行增删改查
-
-&ensp;&ensp;
-beanFactory创建好了beanDefinitionMap后，查看该BeanDefinition中的class类是否实现了BeanFactoryPostProcessor接口，如果实现了，就可以在重写的方法中获取beanFactory对象，通过该对象可以增删改查beanDefiniton的内容。在方法中，此时singletonObjects还未初始化，只有beanDefinitionMap成员。
-
-&ensp;&ensp;
-例如：此时调用beanFactory.getBean()时，此时singletonObjects还没有创建bean对象，会在singletonObjects中创建该bean并放到singletionObjects中。
-
-&ensp;&ensp;
-例如：beanFactory.registerSingletion(“beanName”, class对象)：将class对象放到单例池中。该方法不会执行后面的属性注入，初始化等过程。
-
-
-&ensp;&ensp;
-使用除@Component外的方法创建bean对象。
-
-&ensp;&ensp;&ensp;&ensp;
-1.@Configuration+@Bean：通过@Bean注解修饰方法，将该方法的返回值放到单例池中。
-   
-&ensp;&ensp;&ensp;&ensp;
-2.实现FactoryBean接口：重写它的getObject()方法，方法的返回值默认会放到单例池中。可以将动态代理创建的对象作为该方法的返回值，加入到单例池中。
-
-&ensp;&ensp;&ensp;&ensp;
-例如：在spring整合mybatis时，当service类需要注入一个接口成员时，而该接口却没有实现类，只有mybatis注解和spring注解，这时mybatis就会通过JDK动态代理生成对象，并生成spring的bean。重写BeanFactory方法getObject()就可以将代理对象插入到单例池中。
-
-&ensp;&ensp;
-上述两种创建bean的方法可以进行后续的初始化。
-
-4.执行BeanAware方法进行属性的初始化。
-
-5.实现beanInitializer接口进行初始化，重写afterProperties()方法，可以对属性进行初始化。
+- 实例化bean对象(通过构造方法或者工厂方法)。
+- 设置对象属性(setter等)（依赖注入）。
+- 调用Bean实现的Aware接口。
+- 将Bean实例传递给BeanPostProcessor的前置处理方法postProcessBeforeInitialization(Object bean, String beanname)方法。
+- 调用InitialingBean的方法afterProperties()。
+- 将Bean实例传递给BeanPostProcessor的后置处理方法postProcessAfterInitialization(Object bean, String beanname)方法。
+- 使用Bean。
+- 容器关闭之前，调用Bean的销毁方法。
 
 ![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
 
@@ -82,37 +60,41 @@ beanFactory创建好了beanDefinitionMap后，查看该BeanDefinition中的class
 
 
 ***AOP***
-Spring AOP的面向切面编程，是面向对象编程的一种补充，用于处理系统中分布的各个模块的横切关注点，比如说事务管理、日志、缓存等。它是使用动态代理实现的，在内存中临时为方法生成一个AOP对象，这个对象包含目标对象的所有方法，在特定的切点做了增强处理，并回调原来的方法。
 
-Spring AOP的动态代理主要有两种方式实现，JDK动态代理和cglib动态代理。JDK动态代理通过反射来接收被代理的类，但是被代理的类必须实现接口，核心是InvocationHandler和Proxy类。cglib动态代理的类一般是没有实现接口的类，cglib是一个代码生成的类库，可以在运行时动态生成某个类的子类，所以，CGLIB是通过继承的方式做的动态代理，因此如果某个类被标记为final，那么它是无法使用CGLIB做动态代理的。
+Spring AOP的面向切面编程，是面向对象编程的一种补充。AOP可以通过动态代理实现在不修改源代码的情况下给程序动态统一添加功能的一种技术。把散落在程序中的公共部分提取出来，做成切面类，这样的好处在于，代码的可重用，一旦涉及到该功能的需求发生变化，只要修改该代码就行。AOP的应用有日志、事务等等。
+
+
+Spring AOP的动态代理主要有两种方式实现，JDK动态代理和cglib动态代理。JDK动态代理通过反射来接收被代理的类，但是被代理的类必须实现接口，核心是InvocationHandler和Proxy类。，cglib是一个代码生成的类库，可以在运行时动态生成某个类的子类，所以，CGLIB是通过继承的方式做的动态代理，因此如果某个类被标记为final，那么它是无法使用CGLIB做动态代理的。
 
 ***代理模式***
 
-静态：由程序员创建代理类或特定工具自动生成源代码再对其编译。在程序运行前代理类的.class文件就已经存在了。
-
-动态：在程序运行时运用反射机制动态创建而成。当被代理类实现接口时，自动使用JDK动态代理，实现类是class时，自动使用CGLib。
+代理对象调用被代理对象的方法时，在方法前后增加一些处理逻辑，达到增强被代理对象的目的。代理模式分为静态代理和动态代理：
+- 静态代理的代理类由程序员创建，由于要增强的方法太过于灵活，例如打印日志的位置可能经常修改，这样静态的代理类也要维护，非常麻烦；
+- 动态代理的代理类在运行时有spring自动创建，不用程序员编写，这样非常方便。动态代理的实现有JDK动态代理和CGLib动态代理。
 
 ***JDK动态代理***
-运行是创建Proxy类，InvocationHandler的invoke()方法对被代理对象进行包装，Proxy执行InvocationHandler的invoke（）方法。
+JDK动态代理在运行时生成.class文件，在生成.class文件时必须提供一组interface给它，然后代理对象就实现了interface的方法。然而代理是不会代替subjct进行实质性的工作，在生成代理实例时必须提供一个InvocationHandler的实现类，由它接管实际的工作。
+
+例如：在spring整合mybatis时，当service类需要注入一个接口成员时，而该接口却没有实现类，只有mybatis注解和spring注解，这时mybatis就会通过JDK动态代理生成对象，并生成spring的bean。重写BeanFactory方法getObject()就可以将代理对象插入到单例池中。
 
 ***CGLib***
-修改被代理对象的二进制文件，生成动态代理对象。
+修改被代理对象的二进制文件，生成动态代理对象。cglib动态代理的类一般是没有实现接口的类。
 
-至此，我们知道动态代理相对于静态代理的优势：就静态代理而言，在委托类特别多的应用场景，就要相应的添加许多的代理类，这显然增加了应用程序的复杂度，而使用动态代理就可以减少代理类的数量，相对降低了应用程序的复杂度。
-
+例如：AOP的通知通过设置切点和切面来增强功能，切点，即被增强的方法。切面，即增强的内容。通过上述两个概念，可以有CGLib创建动态代理对象。
 
 **10、spring的controller是单例还是多例，怎么保证并发的安全。**
 
 spring bean作用域有五种：
 
-- singleton：单例模式，当spring创建applicationContext容器的时候，spring会欲初始化所有的该作用域实例，加上lazy-init就可以避免预处理；
-- prototype：原型模式，每次通过getBean获取该bean就会新产生一个实例，创建后spring将不再对其管理；
+- singleton：单例模式，当spring创建applicationContext容器的时候，spring会欲初始化所有的该作用域实例，加上lazy-init就可以避免预处理。
+- prototype：原型模式，每次通过getBean获取该bean就会新产生一个实例，创建后spring将不再对其管理。
 
 ====下面是在web项目下才用到的===
 
-- request：搞web的大家都应该明白request的域了吧，就是每次请求都新产生一个实例，和prototype不同就是创建后，接下来的管理，spring依然在监听。
-- session：每次会话，同上。
-- global session：全局的web域，类似于servlet中的application。
+- request：每次请求都新产生一个实例，连接结束就删除bean。
+- session：每次会话（一个用户的多次请求都算在一次会话中，不同的用户的请求是不同的会话）都会产生一个示例，会话结束就删除bean。
+- global session:所有会话中只产生一个实例。
+
 
 spring中的controller默认是单例，也就是singleton模式了。
 
@@ -120,11 +102,22 @@ spring中的controller默认是单例，也就是singleton模式了。
 
 为了保证并发的安全，常见有两种解决方法。
 
-- 在controller中使用ThreadLocal变量。
-- 在spring配置文件Controller中声明为scope="prototype"，每次都创建新的controller，不再使用单例模式。
+- 在spring配置文件Controller中声明为scope="prototype"，每次都创建新的controller，不再使用单例模式。或者使用request、session等作用域。
+- 放弃spring管理共享对象，在controller中使用ThreadLocal变量。
 
-另外，Servlet也不是线程安全的，Servlet是单实例多线程的，当多个线程同时访问同一个方法，是不能保证共享变量的线程安全性的。
 
+
+**4、Spring如何管理事务的，怎么配置事务。**
+
+事务管理，就是实现一组操作的原子性，连续性，隔离型和持久性。
+
+Spring提供两种类型的事务管理：
+- 编程式事务，手动编写事务的内容，包括提交、回滚等操作。它增强来灵活性，但维护起来非常困难。
+- 声明式事务，通过使用注解的方式配置事务，将事务管理相关代码与业务代码分离。增强可读性。
+
+可以配置事务的传播性和隔离级别，回滚的异常类。
+
+具体可以去看[Spring事务管理－编程式事务、声明式事务](https://blog.csdn.net/xktxoo/article/details/77919508)。
 
 
 **3、讲讲Spring事务的传播属性。**
@@ -200,20 +193,6 @@ Spring中通过注解@Transactional来实现事务，但在以下几种情况时
 
 需要注意的是，@Transactional也可以作用于类上，放在类级别上等同于该类的每个公有方法都放上了@Transactional。
 
-**4、Spring如何管理事务的，怎么配置事务。**
-
-所谓事务管理，其实就是“**按照给定的事务规则来执行提交或者回滚操作**”。
-
-Spring提供两种类型的事务管理：
-
-- 声明式事务，通过使用注解或基于XML的配置事务，从而事务管理与业务代码分离。
-- 编程式事务，通过编码的方式实现事务管理，需要在代码中显示的调用事务的获得、提交、回滚。它提供了极大的灵活性，但维护起来非常困难。
-
-实际场景下，我们一般使用SpringBoot+注解（@Transactional）的声明式事务。Spring的声明式事务管理建立在AOP基础上，其本质是在目标方法执行前进行拦截，在方法开始前创建一个事务，在执行完方法后根据执行情况提交或回滚事务。声明式事务最大的优点就是不需要通过编程的方式管理事务，这样就不用侵入业务代码，只需要在配置文件中做相关的事物声明就可将业务规则应用到业务逻辑中。和编程式事务相比，声明式事务唯一的不足是只能作用到方法级别，无法做到像编程式事务那样到代码块级别。
-
-具体可以去看[Spring事务管理－编程式事务、声明式事务](https://blog.csdn.net/xktxoo/article/details/77919508)。
-
-
 
 **6、Spring MVC中DispatcherServlet工作流程。**
 
@@ -256,10 +235,18 @@ ViewResolver结合Model和View，来渲染视图，并写回给用户浏览器�
 
 在Spring MVC中主要用到以下注解：
 
-- @Controller注解，它将一个类标记为Spring Web MVC 控制器 Controller。
+- @ResponseBody:将java对象转化为JSON对象。
+- @Controller注解，它将一个类标记为Spring Web MVC 控制器 Controller。在处理器返回给DispatcherServlet后，还需要进行试图解析和渲染，返回html的代码。
 - @RestController注解，在@Controller注解的基础上，增加了@ResponseBody注解，更加适合目前前后端分离的架构下，提供Restful API，返回例如JSON数据格式。当然，返回什么样的数据格式，根据客户端的“ACCEPT”请求头来决定。
 - @RequestMapping注解，用户将特定的HTTP请求方法映射到将处理相应请求的控制器的特定类/方法。此注释可应用于两个级别，一是类级别，映射请求的URL；另一个是方法级别，映射URL以及HTTP请求方法。
 - @GetMapping注解，相当于是@RequestMapping的GET请求方法的特例，目的是为了提高清晰度。并且仅可注册在方法上。
+
+
+***@RequestBody和@RequestParam区别***
+1.@RequestBody用于Post请求，接收json数据，例如：@RequestBody User user　　例如：@RequestBody Map map 。不要用于Get请求。
+
+2.@RequestParam用于Get请求，例如：@RequestParam  Map map，不能用于Post请求。
+
 
 **8、Spring boot启动机制。**
 
@@ -269,8 +256,6 @@ Spring Boot启动时的关键步骤，主要在两个方面：
 - SpringApplication实例run方法的执行过程，其中主要有一个SpringApplicationRunListeners的概念，它作为Spring Boot容器初始化时各阶段事件的中转器，将事件派发给感兴趣的Listeners(在SpringApplication实例的构建过程中得到的)。
 
 强烈建议直接去看这篇文章：[[Spring Boot] 1. Spring Boot启动过程源码分析](https://blog.csdn.net/dm_vincent/article/details/76735888)
-
-注意，这篇文章没有讲关于IOC的东西。这块需要自己补充。
 
 **9、Spring中用到的设计模式。**
 
@@ -345,6 +330,8 @@ Spring AOP就是基于动态代理的，其中有两种不同的代理方法：J
 当然，也可以使用AspectJ，Spring AOP 已经集成了AspectJ。使用 AOP 之后我们可以把一些通用功能抽象出来，在需要用到的地方直接使用即可，这样大大简化了代码量。我们需要增加新功能时也方便，这样也提高了系统扩展性。日志功能、事务管理等等场景都用到了 AOP 。
 
 另外，Spring AOP属于运行时增强，而Aspect J是编译时增强。Spring AOP基于代理来实现，而Aspect J是基于字节码操作。
+
+
 
 **d，模板方法 :**
 
