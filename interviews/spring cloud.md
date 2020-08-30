@@ -1,5 +1,7 @@
+马丁弗勒--提出微服务的概念，提出类熔断概念。
 
-**Hystrix
+
+**Hystrix**
 
 场景：
 
@@ -30,6 +32,11 @@ Hystrix如何才会降级？
 优化方法：
 - 1.使用@DefaultProperties(defaultFallback="global自定义方法")修饰Controller类。这样controller类中每个方法只要加了@HystrixCommand，就默认使用defaultFallback内的降级方法。这种方法还是需要在controller类中配置全局的服务降级方法+特定的服务降级方法方法，使业务方法和降级方法耦合在一起。
 - 2.在@FeignClient注解中加入fallback参数，构造一个Feign接口的实现类，实现类的方法就是服务的降级方法，将实现类配置到fallback参数中。这样当调用服务B时，一旦服务B异常，就会调用接口实现类的降级方法。这解决类代码冗余，代码耦合的问题。
+
+
+**短路器/熔断器**
+
+在@HystrixCommand中使用HystrixProperty属性，设置如果10个请求的失败率达到30%，就将服务进行熔断，以后每次调用该微服务，直接调用降级方法，而不是业务方法，直到过了5s后允许少量请求访问，尝试半开放，看此时微服务是否可用，如果请求成功，从半开到闭合。
 
 
 
