@@ -107,10 +107,16 @@ zookeeper如何保持写的顺序性：
 
 
 
+**Eureka与zookeeper比较**
+
+- Eureka追求可用性，最终的数据是一致的，但是在一定的时间内Eruka集群还没同步好时，Eureka依然可以对外提供服务。因此Eruka性能较好。例如抢票时，显示有5张票，实际上已经没有票。AP。数据默认存在内存中。没有主从概念。
+- Zookeeper是CP。是最终一致性。数据默认存到磁盘中。由于zab协议，zookeeper会保证一半以上的follower节点的内存中信息最新，而Eureka不保证其他节点是否最新。虽然都是最终一致性，但是很明显zookeeper比Eureka而言更可靠。
 
 
-Eureka追求可用性，最终的数据是一致的，但是在一定的时间内Eruka集群还没同步好时，Eureka依然可以对外提供服务。因此Eruka性能较好。例如抢票时，显示有5张票，实际上已经没有票。AP。数据默认存在内存中。没有主从概念。
-Zookeeper追求数据强一致性？？。CP。数据默认存到磁盘中。
+**Ribbon**
+
+Ribbon是客户端负载均衡器。
+
 
 
 **Hystrix**
