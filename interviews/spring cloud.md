@@ -1,9 +1,116 @@
 
-
-
-
-
 马丁弗勒--提出微服务的概念，提出熔断概念。
+
+**Eureka**
+
+spring cloud底层使用http协议通信。rpc基于自定义协议。都是应用曾协议。
+
+传统服务调用：A直接调用B，它的坏处是当B宕机了，A不知道B是否宕机，还会去想B通信，这样会一直重传。
+
+微服务调用：微服务启动时，发送一条数据给Eureka注册中心。注册中心维护一个Map，key表示微服务的名称，value是提供该微服务的具体ip相关信息。
+其他微服务B需要调用该服务A时，从Eureka中获取A的服务地址ip，B就向A服务的一个ip发送请求。
+通过注册中心Eureka，调用者就知道是否现在有机器可以进行访问。而不是直接向服务B访问。
+
+Eruka实现：
+- 在注册中心的启动类上加上@EnableEurekaServer。
+- 在客户端的启动类上加入@EnableEurekaServer，将该微服务作为Eureka服务器的客户端（不加这个注解也行，Spring cloud自动加）。
+- 在客户端的启动类上加入@EnableDiscoveryClient，那么该微服务可以作为任何注册中心的客户端。
+
+@EnableErukaServer源码：
+在项目中，@EnableEurekaServer注解被@Import(EurekaServerMarkerConfig.class)修饰，@Import是Spring注解，@Import用于引入配置类，将将配置类EurekaServerMarkerConfig中的@Bean方法的返回值Marker作为Bean进行注册到Spring容器中。
+
+EurekaServerMarkerConfig的具体的类是定义在Eruka-server的jar包中，spring boot项目中，可以在项目的META-INF/spring.factories文件中添加 接口全路径名 = 实现类全路径名，那么当前的spring boot项目的spring容器会自动装配/注册这个bean。
+
+但是在Eureka-server.jar中的EurekaServerMarkerConfig定义中，使用@ConditionalOnBean(EurekaServerMarkerConfig.Marker.class)的注解，即只有当spring容器中存在该bean时，才能装配EurekaServerMarkerConfig这个bean。
+
+因此@EnableEukekaServer就是一个开关，加这个注解后，容器就可以得到Marker的bean，才能注入EurekaServer相关的配置类信息。不加这个注解，就会被@ConditionalOnBean拦截，不能装配Eureka的bean。
+
+心跳连接/服务剔除/服务下架/服务注册/集群通信/自我保护机制都使用HTTP进行通信。底层使用Jersey代替SpringMVC。使用Filter代替DispatcherServlet。使用XxxResource代替XxxController。
+
+服务注册流程：
+外部的微服务在Eureka中的存储结构是：ConcurrentHashMap<String, Map<String, Lease<InstanceInfo>>>。其中第一个String代表的是微服务名，第二个String代表实例名，Lease表示实例的详细信息。
+
+微服务名和实例名的区别：为了缓解单个微服务的并发压力，可以配置多个微服务A，B，C对外服务。A,B,C三个服务的配置中的微服务名spring.application.name字段相同，这个微服务名就是Eureka的存储结构的第一个String字段。第二个string是微服务集群中具体提供服务的机器，将每个机器对应一个实例Id，将Id作为key，机器的详细信息作为Lease信息存储。
+
+当注册信息冲突时，将最后最活跃的微服务机器信息覆盖原来的信息，以防新结点异常无法访问。
+
+心跳：默认心跳时间是30s，如果90s没收到某个微服务的心跳，就会把该服务剔除。
+
+服务剔除：当前时间>最后更新时间+过期时间(90s)+Eureka集群同步时间时，认为该节点不可用，从map中剔除该节点。在剔除前，查看自我保护机制是否打开，如果15min，85%结点挂掉，Eureka就会认为是自己的网络出了问题，接收不到微服务的心跳，就开启自我保护机制，不剔除，当网络正常通讯时，就关闭自我保护机制。
+
+集群信息同步：同步与注册都是一个方法：addInstance，但是同步时，方法的isPeplication为true，表示该请求为同步请求，对于同步请求，后续不会再将再发送同步信息，例如：A注册了节点信息，同步给B，B收到同步信息后执行同步，不会再将同步请求发给A了，不然就会发生死循环。
+
+
+**CAP理论**
+
+1.Consistency：集群中的所有数据必须一致。当一个主机的数据发生改变，那么其他主机必须等待完全同步好了才能向外提供服务。
+
+- 一致性分类：
+
+- 场景：集群中A，B两个节点中value都是1，修改A节点的value为2。此时A会向B发送同步信息，将B节点的value值会变成2.
+
+- 1.强一致性：必须等到B结点的value从1同步到2时，B结点才能向外提供服务。Mysql就是强一致性
+- 2. 最终一致性：访问B结点时value没有更新到2也可以，但必须保证最后B结点的value为2.
+- 3.弱一致性：B最终时1或者2都没有关系。
+
+2.Availability:任何时刻集群中的节点都可以对外提供服务。
+
+3.Partition tolenrance：集群中的任意节点故障，集群仍能够向外提供服务。
+
+
+**zookeeper**
+
+zookeeper的一致性：在配置好zookeeper集群后，当一个微服务节点进行增删改查，会通过zab协议件数据同步到集群中的其他机器中。
+
+过半机制：超过一半机器给同一台机器投票时，才会将该机器选举成Leader。
+
+Leader选举机制(leader读写，follower读)
+
+前提知识：
+- zxid：zk的日志id，每个zkserver在接收到一条命令后，会在日志中增加一条记录，每条记录的zxid都是递增的，将日志持久化到磁盘中，再更新内存。是选举的一个依据。
+- myid：zk服务器的配置信息，myid不能重复，代表每个服务器的重要成都，是选举的一个依据。
+
+***选举过程：***
+机器A，B，C，它们的zxid都是100，代表它们最初的状态相同，A，B，C的myid分别是1，2，3。最开始A启动，将投票给自己，后来B启动将投票投给自己，然后B向A发送自己的(myid,zxid)=(2,100)，机器A收到数据后，首先比较zxid，相同，后来比较myid，由于B的myid=2大于A的myid=1，因此A认为B机器更适合做Leader，因此给B投一票：向B发送(2,100)，B收到后，就得知A给B投票了，此时B的票数是2。由于此时2超过了3的一半，满足过半原则，因此此时选择B作为Leader。此时A成为Follower，B是Leader。C启动时，想A，B发自己的投票信息，A，B此时高速C，B是Leader，此时C就作为Follower。
+
+特殊情况：如果A，B，C中B是Leader，并且接收了新请求，zxid变成101，在zxid同步前集群全挂，此时令A，C先启动，那么C就是Leader，B最后启动，B是follower，此时B的101号记录会回滚到101，也就是最开始的修改请求无效了，被丢弃了。如果在集群挂掉之前，已经将A的zxid同步到101，此时A，C先启动，A成为Leader，C是follower，B最后启动，B也是follower，请求没有被丢弃。最终的数据都以Leader结点为准。
+
+zk服务器的连接建立过程：
+A和B发送数据的时候会创建Socket连接，如果A和B同时启动时，可能同时建立两个连接，即A和B连接，B和A连接，这没有必要。zookeeper规定大的myid的主机建立连接成功，小的myid发起连接后，连接无效。
+
+leader挂掉/follower挂掉一半也会进行重新选举，为何？2PC
+
+***zab协议：2pc（信息同步过程）：***
+- 1.Leader接收到修改操作，生成zxid++，并持久化。
+- 2.然后Leader向Followers发送预提交日志，Followers会接收日志，并持久化。leader阻塞等待followers持久化完成，当一半以上的followers持久化完成。这是leader向下执行。
+- 3.commit，leader更新内存，向其他followers节点发起commit请求，让followers更新内存。
+
+由2pc的同步过程知道，follower必须超过一般节点修改zxid后，leader才会发送commit请求，如果挂了一般的节点，不能发送commit请求，此时内存中的zxid不能更新，必须重新选举。
+
+为何zookeeper是最终一致性？
+- 在2pc的第三步commit，Leader会将commit请求放到队列中，马上给客户端发送成功的消息。其他主机会从队列里面拿commit请求，再更新内存，因此follower内存更新是异步的。无法保持强一致性。
+
+心跳：
+Leader向followers节点发送自己最大的zxid。follower比较zxid，如果比leader中的小，就进行同步。
+
+顺序读写：对于每个连接的去写请求，有一个sessionId对应，每次根据sessionId内的请求有序处理。
+
+***为什么zookeeper的节点必须是奇数？***
+
+解决脑裂问题，脑裂问题是指两个区域网络断开，如果没有过半原则。那么每个区域中会选举leader，每个区域都选取一个leader，当网络联通是，此时集群有两个leader，发生脑裂。
+
+采用过半原则时就不会有脑裂问题。比如每个区域都是3个主机。这样每个区域都选不出leader，因为要选leader，必须有4个节点。因此zookeeper不能向外提供服务了。
+
+采用过半原则时，如果是偶数的话，浪费主机，因为5和6台机器都是最多只能有2台主机断开，还能选举leader，对外提供服务。
+
+zookeeper如何保持写的顺序性：
+
+
+
+
+
+Eureka追求可用性，最终的数据是一致的，但是在一定的时间内Eruka集群还没同步好时，Eureka依然可以对外提供服务。因此Eruka性能较好。例如抢票时，显示有5张票，实际上已经没有票。AP。数据默认存在内存中。没有主从概念。
+Zookeeper追求数据强一致性？？。CP。数据默认存到磁盘中。
 
 
 **Hystrix**
