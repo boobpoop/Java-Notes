@@ -117,6 +117,8 @@ zookeeper如何保持写的顺序性：
 
 Ribbon是客户端负载均衡器。
 
+Ribbon客户端根据指定的微服务获取到它的实例ip信息的list集合。
+
 
 
 **Hystrix**
