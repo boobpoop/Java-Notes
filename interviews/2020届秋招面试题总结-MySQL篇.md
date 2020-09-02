@@ -138,6 +138,16 @@ MySQL中索引采用的数据结构主要是B+Tree，Hash，平衡二叉树等�
 - 如果没有主键被定义，那么该表的第一个唯一非空索引被作为聚集索引。
 - 如果没有主键也没有合适的唯一索引，那么innodb内部会生成一个隐藏的主键作为聚集索引，这个隐藏的主键是一个6个字节的列，改列的值会随着数据的插入自增。
 
+聚集索引：使用聚集索引的表，记录和索引保持着一致的顺序，这样只要找到索引的值就能直接从叶子节点里面获取到全部列数据；
+
+非聚集索引：记录和索引的顺序往往不同，可理解为索引下面的叶子节点存储的还是索引，想要获得真正的列数据，还需要再一次查询；
+
+1，表数据不多：表数据不多的时候，磁盘IO本来就少，加索引只会增加IO开销；
+
+2，不常使用的列：没必要；
+
+3，频繁更新的列：插入和删除时需要额外维护一份索引数据，会影响总的效率；
+
 另外，切记的是，**聚集索引的存储并不是物理上连续的，而是逻辑上连续的。** 这其中有两点：
 
 - 每个表的数据页通过双向链表链接，页按照主键的顺序排序；
@@ -486,6 +496,30 @@ SQL是一套标准，是用来完成和数据库之间的通信的编程语言�
 (6) HAVING <having_condition>
 (9) ORDER BY <order_by_condition>
 (10) LIMIT <limit_number>
+```
+
+```
+1) FROM <left_table>
+
+(3) <join_type> JOIN <right_table>
+
+(2) ON <join_condition>
+
+(4) WHERE <where_condition>
+
+(5) GROUP BY <group_by_list>
+
+(6) WITH {CUBE | ROLLUP}
+
+(7) HAVING <having_condition>
+
+(8) SELECT
+
+(9) DISTINCT
+
+(9) ORDER BY <order_by_list>
+
+(10) <TOP_specification> <select_list>
 ```
 
 建议直接去看这篇文章：[SQL查询之执行顺序解析](http://zouzls.github.io/2017/03/23/SQL%E6%9F%A5%E8%AF%A2%E4%B9%8B%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F%E8%A7%A3%E6%9E%90/)
