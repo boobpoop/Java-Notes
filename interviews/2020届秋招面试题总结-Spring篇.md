@@ -59,13 +59,9 @@ spring最核心的就是ioc和aop。
 - @Lazy懒加载：在调用beanFactory.getBean()时才生成bean对象；不是在启动容器时，就包bean实例化。
 - @Bean：将自己new出来的对象放到beanFactory中。
 
-***BeanFactoryPostProcessor与BeanPostProcessor区别***
+***BeanFactoryPostProcessor与BeanPostProcessor区别（它们都是扩展点）***
 - BeanFactoryPostProcessor在beanDefinitionMap创建好后，可以修改beanFactory对象，例如：通过beanFactory.registerBean("beanName", new Xxx())将new的对象放到beanFactory中。
 - BeanPostProcessor在创建好bean后，进行依赖注入，例如，要扫描@Autowired，它的实现类是AutowiredAnnotationBeanPostProcessor，通过该实现类进行依赖注入。
-
-***spring的扩展点***
-- BeanFactoryPostProcessor：
-- BeanPostProcessor：
 
 
 ![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
