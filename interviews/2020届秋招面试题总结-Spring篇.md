@@ -47,7 +47,7 @@ spring最核心的就是ioc和aop。
 
 - spring扫描要注解的类，这些注解例如@Lazy懒加载，@dependsOn依赖等等。将注解信息保存到beanFactory对象的beanDefinition的ConcurrentHashMap中。
 - 实现BeanFactoryPostProcessor接口，即bean工厂的后置处理器（针对beanFactory建造之后，处理器去处理工厂）。在实现类中获取beanFactory，修改beanDefintion。
-- spring根据上述修改完后的beanDefinition，通过反射调用beanClass对象的constructor.newInstance()方法实例化bean对象。此时bean对象的成员变量还没有注入。
+- spring根据上述修改完后的beanDefinition，通过反射调用beanClass对象的constructor.newInstance()方法实例化bean原始对象。此时bean原始对象的成员变量还没有注入。
 - 调用Bean实现的Aware接口进行属性注入，注入beanFactory中已经存在的信息。
 - BeanPostProcessor同样进行依赖注入，例如@Autowired，它的实现类是AutowiredAnnotationBeanPostProcessor，通过该实现类的postProcessBeforeInitialization方法进行依赖注入。
 - 如果有些成员变量的值不能通过Aware接口的BeanFactory进行注入，即BeanFactory内不包含某些成员变量的信息。比如userName字段，要通过数据库的查询，然后在注入给userName成员变量，这时可以实例话InitialingBean接口，重写afterProperties()方法，在方法内部获取到userName，注入给成员变量。然后调用BeanPostProcessor的postProcessAfterInitialization()方法进行依赖注入。
@@ -62,6 +62,10 @@ spring最核心的就是ioc和aop。
 ***BeanFactoryPostProcessor与BeanPostProcessor区别（它们都是扩展点）***
 - BeanFactoryPostProcessor在beanDefinitionMap创建好后，可以修改beanFactory对象，例如：通过beanFactory.registerBean("beanName", new Xxx())将new的对象放到beanFactory中。
 - BeanPostProcessor在创建好bean后，进行依赖注入，例如，要扫描@Autowired，它的实现类是AutowiredAnnotationBeanPostProcessor，通过该实现类进行依赖注入。
+
+
+***循环依赖***
+
 
 
 ![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
