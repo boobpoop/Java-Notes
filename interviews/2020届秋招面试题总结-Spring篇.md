@@ -18,7 +18,7 @@ spring最核心的就是ioc和aop。
 
 **bean装配方式**
 - @Component，@Service等注解继承自@Component。
-- @Bean。@Configuration+@Bean：通过@Bean注解修饰方法，将该方法的返回值放到单例池中。通过"&beanName"和"beanName"返回的对象不同，前者返回类所对应的对象；后者返回@bean修饰的方法返回的对象。
+- @Bean。@Configuration+@Bean：通过@Bean注解修饰方法，将该方法的返回值放到单例池中。通过"&beanName"和"beanName"返回的对象不同，前者返回类所对应的对象；后者返回@bean修饰的方法返回的对象。通过反射调用构造方法constructor.newInstance()。
 - 实现FactoryBean接口，以@Component修改时实现类。
 
 **FactoryBean与BeanFactory**
@@ -45,14 +45,28 @@ spring最核心的就是ioc和aop。
 
 **Spring中Bean的生命周期。**
 
-- 实例化bean对象(通过构造方法或者工厂方法)。
-- 设置对象属性(setter等)（依赖注入）。
-- 调用Bean实现的Aware接口。
-- 将Bean实例传递给BeanPostProcessor的前置处理方法postProcessBeforeInitialization(Object bean, String beanname)方法。
-- 调用InitialingBean的方法afterProperties()。
-- 将Bean实例传递给BeanPostProcessor的后置处理方法postProcessAfterInitialization(Object bean, String beanname)方法。
-- 使用Bean。
-- 容器关闭之前，调用Bean的销毁方法。
+- spring扫描要注解的类，这些注解例如@Lazy懒加载，@dependsOn依赖等等。将注解信息保存到beanFactory对象的beanDefinition的ConcurrentHashMap中。
+- 实现BeanFactoryPostProcessor接口，即bean工厂的后置处理器（针对beanFactory建造之后，处理器去处理工厂）。在实现类中获取beanFactory，修改beanDefintion。
+- spring根据上述修改完后的beanDefinition，通过反射调用beanClass对象的constructor.newInstance()方法实例化bean对象。此时bean对象的成员变量还没有注入。
+- 调用Bean实现的Aware接口进行属性注入，注入beanFactory中已经存在的信息。
+- BeanPostProcessor同样进行依赖注入，例如@Autowired，它的实现类是AutowiredAnnotationBeanPostProcessor，通过该实现类的postProcessBeforeInitialization方法进行依赖注入。
+- 如果有些成员变量的值不能通过Aware接口的BeanFactory进行注入，即BeanFactory内不包含某些成员变量的信息。比如userName字段，要通过数据库的查询，然后在注入给userName成员变量，这时可以实例话InitialingBean接口，重写afterProperties()方法，在方法内部获取到userName，注入给成员变量。然后调用BeanPostProcessor的postProcessAfterInitialization()方法进行依赖注入。
+- aop，如果切面切了一下Bean的方法，即对Bean的方法进行类增强。那么会新建一个代理对象，如果对象是单例的，将代理对象放到单例池中；如果对象是原型的，就直接返回。
+
+
+***常用注解***
+- @dependsOn("user"):当创建一个bean时，需要依赖另外一个bean，如果user这个bean没有生成，那么当前的bean也不会生成。
+- @Lazy懒加载：在调用beanFactory.getBean()时才生成bean对象；不是在启动容器时，就包bean实例化。
+- @Bean：将自己new出来的对象放到beanFactory中。
+
+***BeanFactoryPostProcessor与BeanPostProcessor区别***
+- BeanFactoryPostProcessor在beanDefinitionMap创建好后，可以修改beanFactory对象，例如：通过beanFactory.registerBean("beanName", new Xxx())将new的对象放到beanFactory中。
+- BeanPostProcessor在创建好bean后，进行依赖注入，例如，要扫描@Autowired，它的实现类是AutowiredAnnotationBeanPostProcessor，通过该实现类进行依赖注入。
+
+***spring的扩展点***
+- BeanFactoryPostProcessor：
+- BeanPostProcessor：
+
 
 ![Y5iwE4.png](https://s1.ax1x.com/2020/05/19/Y5iwE4.png)
 
@@ -65,6 +79,11 @@ Spring AOP的面向切面编程，是面向对象编程的一种补充。AOP可�
 
 
 Spring AOP的动态代理主要有两种方式实现，JDK动态代理和cglib动态代理。JDK动态代理通过反射来接收被代理的类，但是被代理的类必须实现接口，核心是InvocationHandler和Proxy类。，cglib是一个代码生成的类库，可以在运行时动态生成某个类的子类，所以，CGLIB是通过继承的方式做的动态代理，因此如果某个类被标记为final，那么它是无法使用CGLIB做动态代理的。
+
+
+***@Autowired如何赋值，赋的值是什么类型***
+内部保存的还是java对象，但是beanDefinition这些解析如何去生成这些java对象。
+
 
 ***代理模式***
 
