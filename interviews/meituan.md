@@ -1,6 +1,16 @@
 1. 写一个函数，找到一个文件夹下所有文件，包括子文件夹
 2. 如何判断链表中是否有环？
 servlet和MVC的区别？
+
+-    Servlet是接口，运行在Web 服务器中来处理用户的请求。然后Servlet接口提供了5个方法：初始化init，销毁destory，处理请求service，获取Servlet参数getServletConfig，获取Servlet信息getServletInfo。当然主要的方法还是前三个方法，体现了servlet的生命周期，从容器创建时要做什么的init，处理请求并返回时做什么的service，到请求结束后销毁servlet做什么的destory.   接下来，什么是SpringMVC呢，这是Spring提供的一个mvc框架，通过把保存了数据Map的Model，页面显示的View，控制器Controller三者分离，简化了web项目开发的复杂度，降低了分工的难度。    Spring Boot将tomcat设为默认容器，tomcat是一个Servlet容器，所以Spring MVC的入口也毫无意外的是一个Servlet，也就是前置控制器DispatcherServlet，作为Spring MVC架构的核心，前置控制器能够拦截请求，将其分发给Controller处理。handler在这里，是指包含了我们请求的Controller类和Method方法的对象。
+
+
+
+- 目标接口：Target，该角色把其他类转换为我们期望的接口
+- 被适配者: Adaptee 原有的接口，也是希望被改变的接口
+- 适配器： Adapter, 将被适配者和目标接口组合到一起的类
+
+
 mysql主从复制如何复制
 我说了主会有一个日志（binlog，但是面试的时候忘记了），这个日志只记录了增删改的操作，然后给从，从加载日志（2个线程）
 
